@@ -76,14 +76,15 @@ func WriteFile(filename string, content []byte, mTime time.Time) error {
 		return err
 	}
 	defer f.Close()
-	_, err = f.Write(content)
-	if err != nil {
+
+	if _, err = f.Write(content); err != nil {
 		return err
 	}
-	err = os.Chtimes(filename, mTime, mTime)
-	if err != nil {
+
+	if err = os.Chtimes(filename, mTime, mTime); err != nil {
 		return err
 	}
+
 	return nil
 }
 

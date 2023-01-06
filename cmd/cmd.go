@@ -50,6 +50,7 @@ var dlCmd = &cobra.Command{
 				return fmt.Errorf("[ID: %s] %w", s, err)
 			}
 		}
+
 		return nil
 	},
 }
@@ -61,9 +62,11 @@ var searchCmd = &cobra.Command{
 		if err := cobra.MinimumNArgs(1)(cmd, args); err != nil {
 			return err
 		}
+
 		if err := cobra.MaximumNArgs(1)(cmd, args); err != nil {
 			return err
 		}
+
 		return nil
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -71,6 +74,7 @@ var searchCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("[keyword: %s] %w", args[0], err)
 		}
+
 		return nil
 	},
 }
@@ -83,6 +87,7 @@ var timelineCmd = &cobra.Command{
 		if len(args) == 0 {
 			return runTimeline("")
 		}
+
 		return runTimeline(args[0])
 	},
 	Example: "bilisubdl timeline\nbilisubdl timeline sun",
@@ -95,9 +100,11 @@ var listCmd = &cobra.Command{
 		if err := cobra.MinimumNArgs(1)(cmd, args); err != nil {
 			return err
 		}
+
 		if err := cobra.MaximumNArgs(1)(cmd, args); err != nil {
 			return err
 		}
+
 		return nil
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -105,6 +112,7 @@ var listCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+
 		return nil
 	},
 }
@@ -179,6 +187,7 @@ func runDl(id string) error {
 	return nil
 }
 
+
 func runDlEpisode(ids []string) error {
 	var filename string
 	if output != "" {
@@ -203,10 +212,8 @@ func runDlEpisode(ids []string) error {
 
 func downloadSub(id, filename string, publishTime time.Time) error {
 	for _, k := range []string{".srt", ".ass"} {
-		if _, err := os.Stat(filename + k); !os.IsNotExist(err) && !overwrite {
-			if !quiet {
-				fmt.Println("#", filename+k)
-			}
+		if _, err := os.Stat(filename + k); !os.IsNotExist(err) && !overwrite && !quiet {
+			fmt.Println("#", filename+k)
 			return nil
 		}
 	}
@@ -232,6 +239,7 @@ func downloadSub(id, filename string, publishTime time.Time) error {
 	if !quiet {
 		fmt.Println("*", filename+fileType)
 	}
+
 	return nil
 }
 
@@ -240,11 +248,13 @@ func runTimeline(day string) error {
 	if err != nil {
 		return err
 	}
+
 	if isJson {
 		b, err := json.Marshal(tl)
 		if err != nil {
 			return err
 		}
+
 		fmt.Println(string(b))
 	} else {
 		for _, s := range tl.Data.Items {
@@ -274,11 +284,13 @@ func runSearch(s string) error {
 	if err != nil {
 		return err
 	}
+
 	if isJson {
 		b, err := json.Marshal(ss)
 		if err != nil {
 			return err
 		}
+
 		fmt.Println(string(b))
 	} else {
 		table := newTable([]string{"ID", "Title", "Status"})
