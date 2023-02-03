@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/K0ng2/bilisubdl/utils"
+	"golang.org/x/exp/slices"
 )
 
 // api url examples
@@ -44,7 +45,7 @@ func GetInfo(id string) (*Info, error) {
 	}
 
 	if info.Code != 0 {
-		return nil, fmt.Errorf("Info api response code %d: %s", info.Code, info.Message)
+		return nil, fmt.Errorf("api response %s", info.Message)
 	}
 
 	return info, nil
@@ -67,14 +68,14 @@ func GetEpisodes(id string) (*Episodes, error) {
 	}
 
 	if epList.Code != 0 {
-		return nil, fmt.Errorf("Episodes api response code %d: %s", epList.Code, epList.Message)
+		return nil, fmt.Errorf("api response %s", epList.Message)
 	}
 
 	return epList, nil
 }
 
-func GetEpisode(id string) (*Episode, error) {
-	ep := new(Episode)
+func GetEpisode(id string) (*EpisodeFile, error) {
+	ep := new(EpisodeFile)
 	query := map[string]string{
 		"s_locale": "en_US",
 		"ep_id":    id,
@@ -90,13 +91,13 @@ func GetEpisode(id string) (*Episode, error) {
 	}
 
 	if ep.Code != 0 {
-		return nil, fmt.Errorf("Episode api response code %d: %s", ep.Code, ep.Message)
+		return nil, fmt.Errorf("api response %s", ep.Message)
 	}
 
 	return ep, nil
 }
 
-func (s *Episode) Subtitle(language string) ([]byte, string, error) {
+func (s *EpisodeFile) Subtitle(language string) ([]byte, string, error) {
 	index := -1
 	for i, s := range s.Data.Subtitles {
 		if s.Key == language {
@@ -114,10 +115,10 @@ func (s *Episode) Subtitle(language string) ([]byte, string, error) {
 	}
 
 	resp, err := utils.Request(s.Data.Subtitles[index].URL, nil)
-	defer resp.Body.Close()
 	if err != nil {
 		return nil, "", err
 	}
+	defer resp.Body.Close()
 
 	fileType := filepath.Ext(resp.Request.URL.Path)
 	switch fileType {
@@ -160,7 +161,7 @@ func GetTimeline() (*Timeline, error) {
 	}
 
 	if timeline.Code != 0 {
-		return nil, fmt.Errorf("api response code %d: %s", timeline.Code, timeline.Message)
+		return nil, fmt.Errorf("api response %s", timeline.Message)
 	}
 
 	return timeline, nil
@@ -176,7 +177,7 @@ func GetSearch(s string, item string) (*Search, error) {
 		"s_locale": "en_US",
 	}
 
-	resp, err := utils.Request(bilibiliAPI+"/web/v2/search", query)
+	resp, err := utils.Request(bilibiliAPI+"/web/v2/search_v2/anime", query)
 	if err != nil {
 		return nil, err
 	}
@@ -186,7 +187,40 @@ func GetSearch(s string, item string) (*Search, error) {
 	}
 
 	if search.Code != 0 {
-		return nil, fmt.Errorf("api response code %d: %s", search.Code, search.Message)
+		return nil, fmt.Errorf("api response %s", search.Message)
 	}
 	return search, nil
+}
+
+// func ExtractSel[E Section | Episode](e []E, sel []string) []E {
+// 	if sel == nil {
+// 		return e
+// 	}
+
+// 	selIndex := utils.ListSelect(sel, len(e))
+// 	sec := make([]E, 0, len(selIndex))
+// 	for i, s := range e {
+// 		if slices.Contains(selIndex, i+1) {
+// 			sec = append(sec, s)
+// 		}
+// 	}
+// 	return sec
+// }
+
+func ExtractEp(sections []Section, secSel []string, epSel []string) []Episode {
+	var maxEp int
+	secSelect := utils.ListSelect(secSel, len(sections))
+	eps := []Episode{}
+	for si, ss := range sections {
+		if secSel == nil || slices.Contains(secSelect, si+1) {
+			epSelect := utils.ListSelect(epSel, maxEp+len(ss.Episodes))
+			for ei, es := range ss.Episodes {
+				if epSel == nil || slices.Contains(epSelect, maxEp+ei+1) {
+					eps = append(eps, es)
+				}
+			}
+			maxEp += len(ss.Episodes)
+		}
+	}
+	return eps
 }

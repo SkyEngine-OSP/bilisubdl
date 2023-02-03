@@ -19,21 +19,25 @@ type Episodes struct {
 	Code    int    `json:"code"`
 	Message string `json:"message"`
 	Data    struct {
-		Sections []struct {
-			Title       string `json:"title"`
-			EpListTitle string `json:"ep_list_title"`
-			Episodes    []struct {
-				ShortTitleDisplay string      `json:"short_title_display"`
-				LongTitleDisplay  string      `json:"long_title_display"`
-				EpisodeID         json.Number `json:"episode_id"`
-				TitleDisplay      string      `json:"title_display"`
-				PublishTime       time.Time   `json:"publish_time"`
-			} `json:"episodes"`
-		} `json:"sections"`
+		Sections []Section `json:"sections"`
 	} `json:"data"`
 }
 
+type Section struct {
+	Title       string    `json:"title"`
+	EpListTitle string    `json:"ep_list_title"`
+	Episodes    []Episode `json:"episodes"`
+}
+
 type Episode struct {
+	ShortTitleDisplay string      `json:"short_title_display"`
+	LongTitleDisplay  string      `json:"long_title_display"`
+	EpisodeID         json.Number `json:"episode_id"`
+	TitleDisplay      string      `json:"title_display"`
+	PublishTime       time.Time   `json:"publish_time"`
+}
+
+type EpisodeFile struct {
 	Code    int    `json:"code"`
 	Message string `json:"message"`
 	Data    struct {
@@ -95,31 +99,31 @@ type Search struct {
 	Code    int    `json:"code"`
 	Message string `json:"message"`
 	// TTL     int    `json:"ttl"`
-	Data []struct {
-		Module string `json:"module"`
-		// Title   string `json:"title"`
-		// HasNext bool   `json:"has_next"`
-		// TrackID string `json:"track_id"`
+	Data struct {
 		Items []struct {
-			Title    string      `json:"title"`
-			SeasonID json.Number `json:"season_id"`
-			// Mid            int         `json:"mid"`
-			// Desc           string      `json:"desc"`
-			// Followers      string      `json:"followers"`
-			// ArchiveNum     string      `json:"archive_num"`
-			// Duration       string      `json:"duration"`
-			// Cover          string      `json:"cover"`
-			// UpFollowButton interface{} `json:"up_follow_button"`
-			// Score          int         `json:"score"`
-			// TitleMatch     interface{} `json:"title_match"`
-			// TabType        int         `json:"tab_type"`
-			// TabName        string      `json:"tab_name"`
-			// Aid            int         `json:"aid"`
-			// Avatar         string      `json:"avatar"`
-			// Label          int         `json:"label"`
+			Title    string `json:"title"`
+			SeasonID string `json:"season_id"`
+			// Highlights []struct {
+			// 	Str   string `json:"str"`
+			// 	Match bool   `json:"match"`
+			// } `json:"highlights"`
+			// Cover          string `json:"cover"`
+			// View           string `json:"view"`
+			// SeasonType     string `json:"season_type"`
+			// SeasonTypeEnum int    `json:"season_type_enum"`
+			// Styles         []struct {
+			// 	ID    int    `json:"id"`
+			// 	Title string `json:"title"`
+			// 	Qs    string `json:"qs"`
+			// } `json:"styles"`
+			// Description   string `json:"description"`
+			// PayPolicyEnum int    `json:"pay_policy_enum"`
+			// ContentRating int    `json:"content_rating"`
+			// UpdatePattern string `json:"update_pattern"`
+			// Label         int    `json:"label"`
 			IndexShow string `json:"index_show"`
-			// View           string      `json:"view"`
-			// Styles         string      `json:"styles"`
 		} `json:"items"`
+		// Qid     string `json:"qid"`
+		// HasNext bool   `json:"has_next"`
 	} `json:"data"`
 }
