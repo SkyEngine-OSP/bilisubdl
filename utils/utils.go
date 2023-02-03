@@ -14,6 +14,10 @@ type Response struct {
 	*http.Response
 }
 
+var (
+	Debug bool
+)
+
 func Request(url string, query map[string]string) (*Response, error) {
 	client := &http.Client{
 		Timeout: 30 * time.Second,
@@ -29,13 +33,16 @@ func Request(url string, query map[string]string) (*Response, error) {
 		q.Add(j, s)
 	}
 	req.URL.RawQuery = q.Encode()
+	if Debug {
+		fmt.Printf("[DEBUG] utils.Request: %s\n", req.URL)
+	}
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("http error code %d %s", resp.StatusCode, resp.Status)
+		return nil, fmt.Errorf("http error %s", resp.Status)
 	}
 
 	return &Response{resp}, nil
@@ -92,9 +99,6 @@ func ListSelect(list []string, max int) []int {
 	var item []int
 	for _, s := range list {
 		if b := strings.Split(s, "-"); len(b) > 1 {
-			if b[0] == "" {
-				continue
-			}
 			b0, _ := strconv.Atoi(b[0])
 			b1, _ := strconv.Atoi(b[1])
 			for i := b0; i <= b1; i++ {
