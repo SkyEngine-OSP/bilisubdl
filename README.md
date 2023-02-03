@@ -1,46 +1,46 @@
 # bilisubdl
 
-## Examples
-
-Download 1049041 with english language
-
-`bilisubdl dl 1049041 -l en`
-
-Download 37738 and 1042594 with thai language
-
-`bilisubdl dl 37738 1042594 -l th`
-
-List 37738 subtitle language
-
-`bilisubdl list 37738 -L`
-
-Show today timeline
-
-`bilisubdl timeline`
-
-Show monday timeline
-
-`bilisubdl timeline mon`
+bilisubdl is a command line tool for downloading subtitles from bilibili.tv. It supports downloading subtitles from both anime and episode ids.
 
 ## Usage
 
-```txt
-Usage:
-  bilisubdl [command]
+```bash
+bilisubdl [command] [flags] [arguments]
+```
 
-Available Commands:
-  completion  Generate the autocompletion script for the specified shell
-  dl          Download subtitle from ID.
-  help        Help about any command
-  list        Show info
-  search      Search anime
-  timeline    Show timeline (sun|mon|tue|wed|thu|fri|sat)
+## Commands
 
-Flags:
-  -h, --help      help for bilisubdl
-  -v, --version   version for bilisubdl
+* `dl`: Download subtitle from ID.
+* `search`: Search anime.
+* `timeline`: Show timeline (sun|mon|tue|wed|thu|fri|sat).
+* `list`: List episode, section and language.
 
-Use "bilisubdl [command] --help" for more information about a command.
+## Examples
+
+```bash
+# Download subtitle from anime id 37738 with language en
+
+$ bilisubdl dl 1049041 -l en
+
+# Download subtitle from episode id 2075361 with language en
+
+$ bilisubdl dl 2075361 -l en --dlepisode
+
+# Search anime with keyword "one piece".
+
+$ bilisubdl search "one piece"
+
+# List available subtitle language of anime id 37738
+
+$ bilisubdl list 37738 -L
+
+# Show today timeline
+
+$ bilisubdl timeline
+
+# Show timeline on Sunday
+
+$ bilisubdl timeline mon
 ```
 
 ## Installing
