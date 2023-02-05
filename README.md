@@ -47,6 +47,6 @@ $ bilisubdl timeline mon
 
 The `bilisubdl` command on Windows using [Scoop](https://scoop.sh/)
 
-```txt
-scoop install https://raw.githubusercontent.com/K0ng2/scoop-bucket/main/bucket/bilisubdl.json
+```bash
+scoop install https://k0ng2.github.io/scoop/bucket/bilisubdl.json
 ```
