@@ -6,7 +6,7 @@ require (
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/spf13/cobra v1.6.1
 	github.com/spf13/pflag v1.0.5
-	golang.org/x/exp v0.0.0-20221230185412-738e83a70c30
+	golang.org/x/exp v0.0.0-20230206171751-46f607a40771
 )
 
 require (

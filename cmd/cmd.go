@@ -156,12 +156,17 @@ func runDl(id string) error {
 		title, filename string
 		maxEp           int
 	)
-	info, err := bilibili.GetInfo(id)
+
+	query := map[string]string{
+		"season_id": id,
+	}
+
+	info, err := bilibili.GetApi(new(bilibili.Info), bilibili.BilibiliSeasonInfoAPI, query)
 	if err != nil {
 		return err
 	}
 
-	epList, err := bilibili.GetEpisodes(id)
+	epList, err := bilibili.GetApi(new(bilibili.Episodes), bilibili.BilibiliEpisodeInfoAPI, query)
 	if err != nil {
 		return err
 	}
@@ -220,7 +225,7 @@ func downloadSub(id, filename string, publishTime time.Time) error {
 		return err
 	}
 
-	episode, err := bilibili.GetEpisode(id)
+	episode, err := bilibili.GetApi(new(bilibili.EpisodeFile), bilibili.BilibiliSubtitleAPI, map[string]string{"ep_id": id})
 	if episode == nil {
 		return err
 	}
@@ -241,7 +246,7 @@ func downloadSub(id, filename string, publishTime time.Time) error {
 }
 
 func runTimeline(day string) error {
-	tl, err := bilibili.GetTimeline()
+	tl, err := bilibili.GetApi(new(bilibili.Timeline), bilibili.BilibiliTimelineAPI, nil)
 	if err != nil {
 		return err
 	}
@@ -277,7 +282,15 @@ func runTimeline(day string) error {
 }
 
 func runSearch(s string) error {
-	ss, err := bilibili.GetSearch(s, "10")
+	query := map[string]string{
+		"keyword":  s,
+		"platform": "web",
+		"pn":       "1",
+		"ps":       "10",
+		"s_locale": "en_US",
+	}
+
+	ss, err := bilibili.GetApi(new(bilibili.Search), bilibili.BilibiliSearchAPI, query)
 	if err != nil {
 		return err
 	}
@@ -303,13 +316,17 @@ func runSearch(s string) error {
 	return nil
 }
 
-func runList(ID string) error {
-	info, err := bilibili.GetInfo(ID)
+func runList(id string) error {
+	query := map[string]string{
+		"season_id": id,
+	}
+
+	info, err := bilibili.GetApi(new(bilibili.Info), bilibili.BilibiliSeasonInfoAPI, query)
 	if err != nil {
 		return err
 	}
 
-	epList, err := bilibili.GetEpisodes(ID)
+	epList, err := bilibili.GetApi(new(bilibili.Episodes), bilibili.BilibiliEpisodeInfoAPI, query)
 	if err != nil {
 		return err
 	}
@@ -323,7 +340,8 @@ func runList(ID string) error {
 
 	switch {
 	case listLang:
-		episode, err := bilibili.GetEpisode(epList.Data.Sections[0].Episodes[0].EpisodeID.String())
+		episode, err := bilibili.GetApi(new(bilibili.EpisodeFile), bilibili.BilibiliSubtitleAPI, map[string]string{"ep_id": epList.Data.Sections[0].Episodes[0].EpisodeID.String()})
+
 		if err != nil {
 			return err
 		}
