@@ -116,9 +116,6 @@ var listCmd = &cobra.Command{
 
 func init() {
 	RootCmd.AddCommand(dlCmd, searchCmd, timelineCmd, listCmd)
-	rootFlag := RootCmd.PersistentFlags()
-	rootFlag.BoolVar(&utils.Debug, "debug", false, "Debug")
-	rootFlag.MarkHidden("debug")
 	selectFlags := flag.NewFlagSet("selectFlags", flag.ExitOnError)
 	selectFlags.StringArrayVar(&sectionSelect, "section-range", nil, "Section select (e.g. 5,8-10)")
 	selectFlags.StringArrayVar(&episodeSelect, "episode-range", nil, "Episode select (e.g. 5,8-10)")
@@ -214,33 +211,44 @@ func runDlEpisode(ids []string) error {
 }
 
 func downloadSub(id, filename string, publishTime time.Time) error {
-	for _, k := range []string{".srt", ".ass"} {
-		if _, err := os.Stat(filename + k); !os.IsNotExist(err) && !overwrite && !quiet {
-			fmt.Println("#", filename+k)
-			return nil
-		}
-	}
-
 	if err := os.MkdirAll(filepath.Join(filepath.Dir(filename)), 0700); os.IsExist(err) {
 		return err
 	}
 
 	episode, err := bilibili.GetApi(new(bilibili.EpisodeFile), bilibili.BilibiliSubtitleAPI, map[string]string{"ep_id": id})
-	if episode == nil {
-		return err
-	}
-
-	sub, fileType, err := episode.Subtitle(language)
 	if err != nil {
 		return err
 	}
 
-	if err := utils.WriteFile(filename+fileType, sub, publishTime); err != nil {
-		return err
-	}
+	for _, k := range episode.Data.Subtitles {
+		if k.Key == language {
+			if k.IsMachine {
+				fmt.Println("Warning machine translation")
+			}
 
-	if !quiet {
-		fmt.Println("*", filename+fileType)
+			fileType := filepath.Ext(strings.Split(k.URL, "?")[0])
+			if fileType == ".json" {
+				fileType = ".srt"
+			}
+
+			if _, err := os.Stat(filename + fileType); !os.IsNotExist(err) && !overwrite && !quiet {
+				fmt.Println("#", filename+fileType)
+				return nil
+			}
+
+			sub, err := bilibili.GetSubtitle(k.URL, fileType)
+			if err != nil {
+				return err
+			}
+
+			if err := utils.WriteFile(filename+fileType, sub, publishTime); err != nil {
+				return err
+			}
+
+			if !quiet {
+				fmt.Println("*", filename+fileType)
+			}
+		}
 	}
 	return nil
 }

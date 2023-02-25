@@ -3,7 +3,6 @@ package bilibili
 import (
 	"fmt"
 	"io"
-	"path/filepath"
 	"strings"
 
 	"github.com/K0ng2/bilisubdl/utils"
@@ -39,54 +38,37 @@ func GetApi[S Info | Episodes | Episode | EpisodeFile | Timeline | Search](s *S,
 		return nil, err
 	}
 
-	if resp.Json(s); err != nil {
+	if utils.Resp2Json(resp, s); err != nil {
 		return nil, err
 	}
 
 	return s, nil
 }
 
-func (s *EpisodeFile) Subtitle(language string) ([]byte, string, error) {
-	index := -1
-	for i, s := range s.Data.Subtitles {
-		if s.Key == language {
-			index = i
-			break
-		}
-	}
-
-	if index == -1 {
-		return nil, "", fmt.Errorf("language \"%s\" not found", language)
-	}
-
-	if s.Data.Subtitles[index].IsMachine {
-		fmt.Println("Warning machine translation")
-	}
-
-	resp, err := utils.Request(s.Data.Subtitles[index].URL, nil)
+func GetSubtitle(url, fileType string) ([]byte, error) {
+	resp, err := utils.Request(url, nil)
 	if err != nil {
-		return nil, "", err
+		return nil, err
 	}
-	defer resp.Body.Close()
+	defer resp.Close()
 
-	fileType := filepath.Ext(resp.Request.URL.Path)
 	switch fileType {
-	case ".json":
+	case ".srt":
 		subJson := new(Subtitle)
-		if err := resp.Json(subJson); err != nil {
-			return nil, "", err
+		if err := utils.Resp2Json(resp, subJson); err != nil {
+			return nil,  err
 		}
-		return []byte(jsonToSRT(subJson)), ".srt", nil
+		return []byte(subJson.toSRT()),  nil
 	default:
-		body, err := io.ReadAll(resp.Body)
+		body, err := io.ReadAll(resp)
 		if err != nil {
-			return nil, "", err
+			return nil,  err
 		}
-		return body, fileType, nil
+		return body, nil
 	}
 }
 
-func jsonToSRT(subJson *Subtitle) string {
+func (subJson *Subtitle) toSRT() string {
 	sub := make([]string, 0, len(subJson.Body))
 	for i, s := range subJson.Body {
 		content := s.Content

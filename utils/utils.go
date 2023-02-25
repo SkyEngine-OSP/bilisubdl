@@ -3,6 +3,7 @@ package utils
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"strconv"
@@ -10,15 +11,7 @@ import (
 	"time"
 )
 
-type Response struct {
-	*http.Response
-}
-
-var (
-	Debug bool
-)
-
-func Request(url string, query map[string]string) (*Response, error) {
+func Request(url string, query map[string]string) (io.ReadCloser, error) {
 	client := &http.Client{
 		Timeout: 30 * time.Second,
 	}
@@ -32,10 +25,8 @@ func Request(url string, query map[string]string) (*Response, error) {
 	for j, s := range query {
 		q.Add(j, s)
 	}
+
 	req.URL.RawQuery = q.Encode()
-	if Debug {
-		fmt.Printf("[DEBUG] utils.Request: %s\n", req.URL)
-	}
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
@@ -45,16 +36,15 @@ func Request(url string, query map[string]string) (*Response, error) {
 		return nil, fmt.Errorf("http error %s", resp.Status)
 	}
 
-	return &Response{resp}, nil
+	return resp.Body, nil
 }
 
-func (resp *Response) Json(t interface{}) error {
-	defer resp.Body.Close()
-
-	err := json.NewDecoder(resp.Body).Decode(&t)
+func Resp2Json(r io.ReadCloser, t interface{}) error {
+	err := json.NewDecoder(r).Decode(&t)
 	if err != nil {
 		return err
 	}
+	defer r.Close()
 	return nil
 }
 
