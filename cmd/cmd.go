@@ -27,6 +27,7 @@ var (
 	dlepisode     bool
 	isJson        bool
 	quiet         bool
+	fastCheck     bool
 	epFilename    string
 	sectionSelect []string
 	episodeSelect []string
@@ -128,8 +129,10 @@ func init() {
 	dlFlag.BoolVarP(&overwrite, "overwrite", "w", false, "Force overwrite downloaded subtitles")
 	dlFlag.BoolVarP(&quiet, "quiet", "q", false, "Quiet verbose")
 	dlFlag.AddFlagSet(selectFlags)
+	dlFlag.BoolVar(&fastCheck, "fast-check", false, "Skip checking subtitle extension from API")
 	dlCmd.MarkFlagRequired("language")
 	dlCmd.MarkFlagsRequiredTogether("filename", "dlepisode")
+	dlCmd.MarkFlagsMutuallyExclusive("fast-check", "overwrite")
 
 	shareFlags := flag.NewFlagSet("shareFlags", flag.ExitOnError)
 	shareFlags.BoolVar(&isJson, "json", false, "Display in JSON format.")
@@ -211,6 +214,15 @@ func runDlEpisode(ids []string) error {
 }
 
 func downloadSub(id, filename string, publishTime time.Time) error {
+	if fastCheck {
+		for _, k := range []string{".srt", ".ass"} {
+			if _, err := os.Stat(filename + k); !os.IsNotExist(err) && !overwrite && !quiet {
+				fmt.Println("#", filename+k)
+				return nil
+			}
+		}
+	}
+
 	if err := os.MkdirAll(filepath.Join(filepath.Dir(filename)), 0700); os.IsExist(err) {
 		return err
 	}

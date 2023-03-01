@@ -39,7 +39,7 @@ func Request(url string, query map[string]string) (io.ReadCloser, error) {
 	return resp.Body, nil
 }
 
-func Resp2Json(r io.ReadCloser, t interface{}) error {
+func JsonUnmarshal(r io.ReadCloser, t interface{}) error {
 	err := json.NewDecoder(r).Decode(&t)
 	if err != nil {
 		return err

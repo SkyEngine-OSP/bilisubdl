@@ -38,7 +38,7 @@ func GetApi[S Info | Episodes | Episode | EpisodeFile | Timeline | Search](s *S,
 		return nil, err
 	}
 
-	if utils.Resp2Json(resp, s); err != nil {
+	if utils.JsonUnmarshal(resp, s); err != nil {
 		return nil, err
 	}
 
@@ -55,7 +55,7 @@ func GetSubtitle(url, fileType string) ([]byte, error) {
 	switch fileType {
 	case ".srt":
 		subJson := new(Subtitle)
-		if err := utils.Resp2Json(resp, subJson); err != nil {
+		if err := utils.JsonUnmarshal(resp, subJson); err != nil {
 			return nil,  err
 		}
 		return []byte(subJson.toSRT()),  nil
