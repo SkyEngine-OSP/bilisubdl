@@ -56,13 +56,14 @@ func GetSubtitle(url, fileType string) ([]byte, error) {
 	case ".srt":
 		subJson := new(Subtitle)
 		if err := utils.JsonUnmarshal(resp, subJson); err != nil {
-			return nil,  err
+			return nil, err
 		}
-		return []byte(subJson.toSRT()),  nil
+
+		return []byte(subJson.toSRT()), nil
 	default:
 		body, err := io.ReadAll(resp)
 		if err != nil {
-			return nil,  err
+			return nil, err
 		}
 		return body, nil
 	}
