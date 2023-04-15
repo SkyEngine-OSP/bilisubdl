@@ -11,6 +11,7 @@ import (
 
 	"github.com/K0ng2/bilisubdl/pkg/bilibili"
 	"github.com/K0ng2/bilisubdl/utils"
+	"github.com/fatih/color"
 	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
 	flag "github.com/spf13/pflag"
@@ -28,6 +29,7 @@ var (
 	isJson        bool
 	quiet         bool
 	fastCheck     bool
+	skipMachine   bool
 	epFilename    string
 	sectionSelect []string
 	episodeSelect []string
@@ -39,9 +41,9 @@ var RootCmd = &cobra.Command{
 
 var dlCmd = &cobra.Command{
 	Use:     "dl [ID] [flags]",
-	Short:   "Download subtitle from ID.",
+	Short:   "command downloads the subtitle for the given anime ID.",
 	Args:    cobra.MinimumNArgs(1),
-	Example: "bilisubdl dl 37738 1042594 -l th",
+	Example: "bilisubdl dl 37738 1042594 -l th -o /path/to/output",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if dlepisode {
 			return runDlEpisode(args)
@@ -59,8 +61,8 @@ var dlCmd = &cobra.Command{
 }
 
 var searchCmd = &cobra.Command{
-	Use:   "search [keyword]",
-	Short: "Search anime",
+	Use:   "search [keyword] [flags]",
+	Short: "command allows you to search for anime on Bilibili based on a keyword.",
 	Args: func(cmd *cobra.Command, args []string) error {
 		if err := cobra.MinimumNArgs(1)(cmd, args); err != nil {
 			return err
@@ -80,12 +82,18 @@ var searchCmd = &cobra.Command{
 
 		return nil
 	},
+	Example: "bilisubdl search \"Attack on Titan\"\nbilisubdl search \"One Piece\" --json",
 }
 
 var timelineCmd = &cobra.Command{
-	Use:   "timeline [day]",
-	Short: "Show timeline (sun|mon|tue|wed|thu|fri|sat)",
-	Args:  cobra.MaximumNArgs(1),
+	Use:   "timeline [day] [flags]",
+	Short: "command allows you to view a timeline of Bilibili videos uploaded on a specific day of the week.",
+	Long: `
+The day of the week for which you want to view the timeline.
+Can be one of 'sun', 'mon', 'tue', 'wed', 'thu', 'fri', or 'sat'.
+If no day is provided, the current day of the week is used.
+`,
+	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if len(args) == 0 {
 			return runTimeline("")
@@ -93,12 +101,12 @@ var timelineCmd = &cobra.Command{
 
 		return runTimeline(args[0])
 	},
-	Example: "bilisubdl timeline\nbilisubdl timeline sun",
+	Example: "bilisubdl timeline\nbilisubdl timeline wed --json",
 }
 
 var listCmd = &cobra.Command{
-	Use:   "list [ID]",
-	Short: "Show info",
+	Use:   "list [ID] [flags]",
+	Short: "command allows you to view information about available subtitles and episodes for a given anime ID",
 	Args: func(cmd *cobra.Command, args []string) error {
 		if err := cobra.MinimumNArgs(1)(cmd, args); err != nil {
 			return err
@@ -118,24 +126,25 @@ var listCmd = &cobra.Command{
 func init() {
 	RootCmd.AddCommand(dlCmd, searchCmd, timelineCmd, listCmd)
 	selectFlags := flag.NewFlagSet("selectFlags", flag.ExitOnError)
-	selectFlags.StringArrayVar(&sectionSelect, "section-range", nil, "Section select (e.g. 5,8-10)")
-	selectFlags.StringArrayVar(&episodeSelect, "episode-range", nil, "Episode select (e.g. 5,8-10)")
+	selectFlags.StringArrayVar(&sectionSelect, "section-range", nil, "selects a range of episodes to download subtitles for (e.g., `5`, `8-10`).")
+	selectFlags.StringArrayVar(&episodeSelect, "episode-range", nil, "selects a range of sections to download subtitles for (e.g., `5`, `8-10`).")
 
 	dlFlag := dlCmd.PersistentFlags()
-	dlFlag.StringVarP(&language, "language", "l", "", "Subtitle language to download (e.g. en)")
-	dlFlag.StringVarP(&output, "output", "o", "./", "Set output directory")
-	dlFlag.BoolVar(&dlepisode, "dlepisode", false, "Download subtitle from episode id")
-	dlFlag.StringVar(&epFilename, "filename", "", "Set subtitle filename (e.g. Abc %d = Abc 1, Abc %02d = Abc 02)\n(This option only works in combination with --dlepisode flag)")
-	dlFlag.BoolVarP(&overwrite, "overwrite", "w", false, "Force overwrite downloaded subtitles")
-	dlFlag.BoolVarP(&quiet, "quiet", "q", false, "Quiet verbose")
+	dlFlag.StringVarP(&language, "language", "l", "", "sets the subtitle language to download (e.g., `en` for English, `zh` for Chinese).")
+	dlFlag.StringVarP(&output, "output", "o", "./", "sets the output directory where the downloaded subtitle file will be saved (default is the current directory).")
+	dlFlag.BoolVar(&dlepisode, "dlepisode", false, "downloads the subtitle for the specified episode ID.")
+	dlFlag.StringVar(&epFilename, "filename", "", "sets the subtitle filename using a specified format. This option only works in combination with `--dlepisode` flag. (e.g. Abc %d = Abc 1, Abc %02d = Abc 02)")
+	dlFlag.BoolVarP(&overwrite, "overwrite", "w", false, "forces the tool to overwrite existing subtitle files in the output directory.")
+	dlFlag.BoolVarP(&quiet, "quiet", "q", false, "suppresses verbose output.")
+	dlFlag.BoolVar(&skipMachine, "skip-machine", false, "skips Machine translation.")
 	dlFlag.AddFlagSet(selectFlags)
-	dlFlag.BoolVar(&fastCheck, "fast-check", false, "Skip checking subtitle extension from API")
-	dlCmd.MarkFlagRequired("language")
+	dlFlag.BoolVar(&fastCheck, "fast-check", false, "skips checking the subtitle extension from API.")
+	dlCmd.MarkPersistentFlagRequired("language")
 	dlCmd.MarkFlagsRequiredTogether("filename", "dlepisode")
 	dlCmd.MarkFlagsMutuallyExclusive("fast-check", "overwrite")
 
 	shareFlags := flag.NewFlagSet("shareFlags", flag.ExitOnError)
-	shareFlags.BoolVar(&isJson, "json", false, "Display in JSON format.")
+	shareFlags.BoolVar(&isJson, "json", false, "displays the output in JSON format.")
 	searchFlag := searchCmd.PersistentFlags()
 	searchFlag.AddFlagSet(shareFlags)
 
@@ -143,9 +152,9 @@ func init() {
 	timelineFlag.AddFlagSet(shareFlags)
 
 	listFlag := listCmd.PersistentFlags()
-	listFlag.BoolVarP(&listLang, "language", "L", false, "List available subtitle language")
-	listFlag.BoolVarP(&listSection, "section", "S", false, "List available section")
-	listFlag.BoolVarP(&listEpisode, "episode", "E", false, "List available episode")
+	listFlag.BoolVarP(&listLang, "language", "L", false, "lists available subtitle languages for the specified anime ID.")
+	listFlag.BoolVarP(&listSection, "section", "S", false, "lists available sections for the specified anime ID.")
+	listFlag.BoolVarP(&listEpisode, "episode", "E", false, "lists available episodes for the specified anime ID.")
 	listFlag.AddFlagSet(selectFlags)
 	listCmd.MarkFlagsMutuallyExclusive("language", "section", "episode")
 	listCmd.MarkFlagsMutuallyExclusive("language", "section-range", "episode-range")
@@ -158,6 +167,7 @@ func runDl(id string) error {
 	)
 
 	query := map[string]string{
+		"s_locale":  "en_US",
 		"season_id": id,
 	}
 
@@ -178,7 +188,7 @@ func runDl(id string) error {
 			episodeIndex := utils.ListSelect(episodeSelect, maxEp+len(j.Episodes))
 			for si, s := range j.Episodes {
 				if episodeSelect == nil || slices.Contains(episodeIndex, maxEp+si+1) {
-					filename = filepath.Join(output, title, fmt.Sprintf("%s.%s", utils.CleanText(s.TitleDisplay), language))
+					filename = filepath.Join(title, fmt.Sprintf("%s.%s", utils.CleanText(s.TitleDisplay), language))
 
 					if err := downloadSub(s.EpisodeID.String(), filename, s.PublishTime); err != nil {
 						return err
@@ -204,7 +214,6 @@ func runDlEpisode(ids []string) error {
 		if epFilename != "" {
 			filename = fmt.Sprintf(epFilename, i+1)
 		}
-		filename = filepath.Join(output, filename)
 
 		if err := downloadSub(id, filename, time.Now()); err != nil {
 			return err
@@ -214,17 +223,15 @@ func runDlEpisode(ids []string) error {
 }
 
 func downloadSub(id, filename string, publishTime time.Time) error {
+	outFile := filepath.Join(output, filename)
+
 	if fastCheck {
 		for _, k := range []string{".srt", ".ass"} {
-			if _, err := os.Stat(filename + k); !os.IsNotExist(err) && !overwrite && !quiet {
-				fmt.Println("#", filename+k)
+			if _, err := os.Stat(outFile + k); !os.IsNotExist(err) && !overwrite && !quiet {
+				color.HiBlack("# %s", filename+k)
 				return nil
 			}
 		}
-	}
-
-	if err := os.MkdirAll(filepath.Join(filepath.Dir(filename)), 0700); os.IsExist(err) {
-		return err
 	}
 
 	episode, err := bilibili.GetApi(new(bilibili.EpisodeFile), bilibili.BilibiliSubtitleAPI, map[string]string{"ep_id": id})
@@ -235,7 +242,11 @@ func downloadSub(id, filename string, publishTime time.Time) error {
 	for _, k := range episode.Data.Subtitles {
 		if k.Key == language {
 			if k.IsMachine {
-				fmt.Println("Warning machine translation")
+				if skipMachine {
+					color.Yellow("- %s", filename)
+					continue
+				}
+				color.Red("Warning: The downloaded subtitle has been machine translated and may contain errors or inaccuracies")
 			}
 
 			fileType := filepath.Ext(strings.Split(k.URL, "?")[0])
@@ -243,8 +254,14 @@ func downloadSub(id, filename string, publishTime time.Time) error {
 				fileType = ".srt"
 			}
 
-			if _, err := os.Stat(filename + fileType); !os.IsNotExist(err) && !overwrite && !quiet {
-				fmt.Println("#", filename+fileType)
+			ext := fileType
+
+			if err := os.MkdirAll(filepath.Dir(outFile), 0700); os.IsExist(err) {
+				return err
+			}
+
+			if _, err := os.Stat(outFile + ext); !os.IsNotExist(err) && !overwrite && !quiet {
+				color.HiBlack("# %s", filename+ext)
 				return nil
 			}
 
@@ -253,14 +270,15 @@ func downloadSub(id, filename string, publishTime time.Time) error {
 				return err
 			}
 
-			if err := utils.WriteFile(filename+fileType, sub, publishTime); err != nil {
+			if err := utils.WriteFile(outFile+fileType, sub, publishTime); err != nil {
 				return err
 			}
 
 			if !quiet {
-				fmt.Println("*", filename+fileType)
+				color.Green("* %s", filename+fileType)
 			}
 		}
+		continue
 	}
 	return nil
 }
@@ -306,7 +324,7 @@ func runSearch(s string) error {
 		"keyword":  s,
 		"platform": "web",
 		"pn":       "1",
-		"ps":       "10",
+		"ps":       "20",
 		"s_locale": "en_US",
 	}
 
@@ -328,7 +346,7 @@ func runSearch(s string) error {
 			table.Append([]string{j.SeasonID, j.Title, j.IndexShow})
 		}
 		if table.NumLines() == 0 {
-			fmt.Println("No relevant results were found.")
+			fmt.Println("No results found for your search query. Please try a different keyword or check your spelling.")
 		} else {
 			table.Render()
 		}
@@ -338,6 +356,7 @@ func runSearch(s string) error {
 
 func runList(id string) error {
 	query := map[string]string{
+		"s_locale":  "en_US",
 		"season_id": id,
 	}
 
@@ -352,7 +371,7 @@ func runList(id string) error {
 	}
 
 	if len(epList.Data.Sections) == 0 {
-		return fmt.Errorf("Episode list not found or not yet aired")
+		return fmt.Errorf("The list is currently empty. Please check back later.")
 	}
 
 	fmt.Println("Title:", info.Data.Season.Title)
