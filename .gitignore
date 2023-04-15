@@ -9,3 +9,4 @@ test*
 cmd/cmd_test.go
 pkg/bilibili/bilibili_test.go
 *.d2
+*.tmp
