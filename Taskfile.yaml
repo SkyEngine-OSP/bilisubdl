@@ -1,6 +1,6 @@
 # https://taskfile.dev
 
-version: '3'
+version: "3"
 
 vars:
   PROJECT: "bilisubdl"
@@ -16,13 +16,13 @@ tasks:
 
   release-test:
     cmds:
-      - goreleaser release --snapshot --rm-dist
+      - goreleaser release --snapshot --clean
 
   releases:
     cmds:
       - git tag -a "v{{.CLI_ARGS}}" -m "v{{.CLI_ARGS}}"
       - git push origin "v{{.CLI_ARGS}}"
-      - goreleaser release --rm-dist
+      - goreleaser release --clean
 
   test:
     cmds:
