@@ -38,7 +38,7 @@ func GetApi[S Info | Episodes | Episode | EpisodeFile | Timeline | Search](s *S,
 		return nil, err
 	}
 
-	if utils.JsonUnmarshal(resp, s); err != nil {
+	if err = utils.JsonUnmarshal(resp, s); err != nil {
 		return nil, err
 	}
 
