@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -30,6 +31,7 @@ var (
 	quiet         bool
 	fastCheck     bool
 	skipMachine   bool
+	dlArchive     string
 	epFilename    string
 	sectionSelect []string
 	episodeSelect []string
@@ -139,6 +141,7 @@ func init() {
 	dlFlag.BoolVar(&skipMachine, "skip-machine", false, "skips Machine translation.")
 	dlFlag.AddFlagSet(selectFlags)
 	dlFlag.BoolVar(&fastCheck, "fast-check", false, "skips checking the subtitle extension from API.")
+	dlFlag.StringVar(&dlArchive, "download-archive", "", "Create a FILE to keep track of all downloaded and skipped subtitles, and use it to prevent downloading any files that are already recorded in it. Additionally, record the IDs of all newly downloaded subtitles in the same FILE.")
 	dlCmd.MarkPersistentFlagRequired("language")
 	dlCmd.MarkFlagsRequiredTogether("filename", "dlepisode")
 	dlCmd.MarkFlagsMutuallyExclusive("fast-check", "overwrite")
@@ -222,19 +225,19 @@ func runDlEpisode(ids []string) error {
 	return nil
 }
 
-func downloadSub(id, filename string, publishTime time.Time) error {
+func downloadSub(episodeId, filename string, publishTime time.Time) error {
 	outFile := filepath.Join(output, filename)
 
 	if fastCheck {
 		for _, k := range []string{".srt", ".ass"} {
 			if _, err := os.Stat(outFile + k); !os.IsNotExist(err) && !overwrite && !quiet {
-				color.HiBlack("# %s", filename+k)
+				isExist(filename + k)
 				return nil
 			}
 		}
 	}
 
-	episode, err := bilibili.GetApi(new(bilibili.EpisodeFile), bilibili.BilibiliSubtitleAPI, map[string]string{"ep_id": id})
+	episode, err := bilibili.GetApi(new(bilibili.EpisodeFile), bilibili.BilibiliSubtitleAPI, map[string]string{"ep_id": episodeId})
 	if err != nil {
 		return err
 	}
@@ -256,13 +259,37 @@ func downloadSub(id, filename string, publishTime time.Time) error {
 
 			ext := fileType
 
-			if err := os.MkdirAll(filepath.Dir(outFile), 0700); os.IsExist(err) {
-				return err
+			if _, err := os.Stat(outFile + ext); !os.IsNotExist(err) && !overwrite && !quiet {
+				if dlArchive != "" {
+					is, err := checkArchive(strconv.Itoa(k.ID))
+					if err != nil {
+						return err
+					}
+					if !is {
+						err = add2Archive(strconv.Itoa(k.ID))
+						if err != nil {
+							return err
+						}
+					}
+				}
+				isExist(filename + ext)
+				return nil
 			}
 
-			if _, err := os.Stat(outFile + ext); !os.IsNotExist(err) && !overwrite && !quiet {
-				color.HiBlack("# %s", filename+ext)
-				return nil
+			if dlArchive != "" {
+				is, err := checkArchive(strconv.Itoa(k.ID))
+				if err != nil {
+					return err
+				}
+
+				if is {
+					isExist(filename + ext)
+					return nil
+				}
+			}
+
+			if err := os.MkdirAll(filepath.Dir(outFile), 0o700); err != nil {
+				return err
 			}
 
 			sub, err := bilibili.GetSubtitle(k.URL, fileType)
@@ -272,6 +299,13 @@ func downloadSub(id, filename string, publishTime time.Time) error {
 
 			if err := utils.WriteFile(outFile+fileType, sub, publishTime); err != nil {
 				return err
+			}
+
+			if dlArchive != "" {
+				err = add2Archive(strconv.Itoa(k.ID))
+				if err != nil {
+					return err
+				}
 			}
 
 			if !quiet {
@@ -412,4 +446,42 @@ func newTable(header []string) *tablewriter.Table {
 	table.SetBorder(false)
 	table.SetHeader(header)
 	return table
+}
+
+func isExist(s string) {
+	color.HiBlack("# %s", s)
+}
+
+func checkArchive(subtitleID string) (bool, error) {
+	f, err := os.Open(dlArchive)
+	defer f.Close()
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+
+	if err != nil {
+		return false, err
+	}
+
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		if subtitleID == scanner.Text() {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+func add2Archive(subtitleID string) error {
+	f, err := os.OpenFile(dlArchive, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0o700)
+	defer f.Close()
+	if err != nil {
+		return err
+	}
+
+	if _, err := f.WriteString(subtitleID + "\n"); err != nil {
+		return err
+	}
+
+	return nil
 }

@@ -43,6 +43,7 @@ type EpisodeFile struct {
 	Data    struct {
 		Subtitles []struct {
 			URL string `json:"url"`
+			ID  int    `json:"id"`
 			// Lang    string `json:"lang"`
 			Title string `json:"title"`
 			// LangKey string `json:"lang_key"`
