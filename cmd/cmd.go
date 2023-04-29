@@ -231,7 +231,7 @@ func downloadSub(episodeId, filename string, publishTime time.Time) error {
 	if fastCheck {
 		for _, k := range []string{".srt", ".ass"} {
 			if _, err := os.Stat(outFile + k); !os.IsNotExist(err) && !overwrite && !quiet {
-				isExist(filename + k)
+				fmt.Println(color.HiBlackString("# %s", filename+k), color.HiYellowString("fast-check"))
 				return nil
 			}
 		}
@@ -247,7 +247,7 @@ func downloadSub(episodeId, filename string, publishTime time.Time) error {
 			if k.IsMachine {
 				if skipMachine {
 					color.Yellow("- %s", filename)
-					continue
+					return nil
 				}
 				color.Red("Warning: The downloaded subtitle has been machine translated and may contain errors or inaccuracies")
 			}
@@ -256,36 +256,26 @@ func downloadSub(episodeId, filename string, publishTime time.Time) error {
 			if fileType == ".json" {
 				fileType = ".srt"
 			}
-
-			ext := fileType
-
-			if _, err := os.Stat(outFile + ext); !os.IsNotExist(err) && !overwrite && !quiet {
-				if dlArchive != "" {
-					is, err := checkArchive(strconv.Itoa(k.ID))
-					if err != nil {
-						return err
-					}
-					if !is {
-						err = add2Archive(strconv.Itoa(k.ID))
-						if err != nil {
-							return err
-						}
-					}
-				}
-				isExist(filename + ext)
-				return nil
-			}
-
 			if dlArchive != "" {
-				is, err := checkArchive(strconv.Itoa(k.ID))
+				isInArchive, err := checkArchive(strconv.Itoa(k.ID))
 				if err != nil {
 					return err
 				}
-
-				if is {
-					isExist(filename + ext)
+				if isInArchive && !overwrite {
+					fmt.Println(color.HiBlackString("# %s", filename+fileType), color.HiYellowString("archive"))
 					return nil
 				}
+				if _, err := os.Stat(outFile + fileType); !os.IsNotExist(err) && !overwrite {
+					err = add2Archive(strconv.Itoa(k.ID))
+					if err != nil {
+						return err
+					}
+					fmt.Println(color.HiBlackString("# %s", filename+fileType), color.HiYellowString("exist, add to archive"))
+					return nil
+				}
+			} else if _, err := os.Stat(outFile + fileType); !os.IsNotExist(err) && !overwrite {
+				fmt.Println(color.HiBlackString("# %s", filename+fileType), color.HiYellowString("exist"))
+				return nil
 			}
 
 			if err := os.MkdirAll(filepath.Dir(outFile), 0o700); err != nil {
@@ -302,9 +292,15 @@ func downloadSub(episodeId, filename string, publishTime time.Time) error {
 			}
 
 			if dlArchive != "" {
-				err = add2Archive(strconv.Itoa(k.ID))
+				isInArchive, err := checkArchive(strconv.Itoa(k.ID))
 				if err != nil {
 					return err
+				}
+				if !isInArchive {
+					err = add2Archive(strconv.Itoa(k.ID))
+					if err != nil {
+						return err
+					}
 				}
 			}
 
@@ -446,10 +442,6 @@ func newTable(header []string) *tablewriter.Table {
 	table.SetBorder(false)
 	table.SetHeader(header)
 	return table
-}
-
-func isExist(s string) {
-	color.HiBlack("# %s", s)
 }
 
 func checkArchive(subtitleID string) (bool, error) {
