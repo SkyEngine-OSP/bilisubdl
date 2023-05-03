@@ -262,7 +262,7 @@ func downloadSub(episodeId, filename string, publishTime time.Time) error {
 					return err
 				}
 				if isInArchive && !overwrite {
-					fmt.Println(color.HiBlackString("# %s", filename+fileType), color.HiYellowString("archive"))
+					fmt.Println(color.HiBlackString("# %s", filename+fileType), color.HiYellowString("archived"))
 					return nil
 				}
 				if _, err := os.Stat(outFile + fileType); !os.IsNotExist(err) && !overwrite {
@@ -270,11 +270,11 @@ func downloadSub(episodeId, filename string, publishTime time.Time) error {
 					if err != nil {
 						return err
 					}
-					fmt.Println(color.HiBlackString("# %s", filename+fileType), color.HiYellowString("exist, add to archive"))
+					fmt.Println(color.HiBlackString("# %s", filename+fileType), color.HiYellowString("existed, add to archive"))
 					return nil
 				}
 			} else if _, err := os.Stat(outFile + fileType); !os.IsNotExist(err) && !overwrite {
-				fmt.Println(color.HiBlackString("# %s", filename+fileType), color.HiYellowString("exist"))
+				fmt.Println(color.HiBlackString("# %s", filename+fileType), color.HiYellowString("existed"))
 				return nil
 			}
 
@@ -307,8 +307,8 @@ func downloadSub(episodeId, filename string, publishTime time.Time) error {
 			if !quiet {
 				color.Green("* %s", filename+fileType)
 			}
+			break
 		}
-		continue
 	}
 	return nil
 }
